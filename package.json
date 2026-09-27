@@ -1,0 +1,32 @@
+{
+  "name": "coyotecode_wed",
+  "version": "1.0.0",
+  "description": "Coyote Code is a beginner-friendly workshop project for building a cloud coding agent with React and TypeScript. Students learn tool calling, repository inspection, controlled code changes, testing, human approval, sandboxing, and cloud deployment.",
+  "scripts": {
+    "test": "vitest run",
+    "dev": "tsx src/index.ts",
+    "check": "tsc --noEmit",
+    "test:watch": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JacobAdams54/CoyoteCode_wed.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/JacobAdams54/CoyoteCode_wed/issues"
+  },
+  "homepage": "https://github.com/JacobAdams54/CoyoteCode_wed#readme",
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.2"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  }
+}
