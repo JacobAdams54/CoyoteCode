@@ -38,6 +38,7 @@ export class ToolRegistry {
     return Array.from(this.tools.values()).map((tool) => ({
       name: tool.name,
       description: tool.description,
+      inputSchema: tool.inputSchema,
     }));
   }
 

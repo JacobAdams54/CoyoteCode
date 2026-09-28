@@ -13,6 +13,15 @@ function createEchoTool(): ToolDefinition {
   return {
     name: "echo",
     description: "Returns the provided input",
+    inputSchema: {
+      type: "object",
+      properties: {
+        message: {
+          type: "string",
+          description: "The message to return",
+        },
+      },
+    },
     execute: async (input: unknown) => input,
   };
 }
@@ -90,6 +99,11 @@ describe("ToolRegistry", () => {
     registry.register({
       name: "broken_tool",
       description: "Always fails",
+      inputSchema: {
+        type: "object",
+        properties: {},
+        additionalProperties: false,
+      },
       execute: async () => {
         throw new Error("Tool execution failed");
       },
@@ -126,6 +140,15 @@ describe("ToolRegistry", () => {
       {
         name: "echo",
         description: "Returns the provided input",
+        inputSchema: {
+          type: "object",
+          properties: {
+            message: {
+              type: "string",
+              description: "The message to return",
+            },
+          },
+        },
       },
     ]);
   });
