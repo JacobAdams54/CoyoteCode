@@ -8,9 +8,7 @@ import type { AgentEvent } from "./model/model-types.js";
 import { createListFilesTool } from "./tools/list-files.js";
 import { ToolRegistry } from "./tools/tool-registry.js";
 
-const DEFAULT_TASK =
-  'Use list_files with path "." to inspect the sample project. ' +
-  "Then summarize the files and directories you found.";
+const DEFAULT_TASK = "What files and directories are in this project?";
 
 /**
  * Prints the provider-neutral event history produced by the agent loop.
@@ -76,18 +74,23 @@ async function main(): Promise<void> {
   const task = commandLineTask || DEFAULT_TASK;
 
   /*
+   * Restrict filesystem tools to the controlled sample project.
+   */
+  const workspaceRoot = resolve(process.cwd(), "sample-project");
+
+  /*
    * The model receives only the tool schema. It never receives the executable
    * function directly.
    */
   const tools = new ToolRegistry();
 
   /*
-   * Restrict filesystem access to the controlled sample project instead of
-   * allowing the agent to inspect the entire repository or machine.
+   * TODO 6:
+   *
+   * 1. Import createListFilesTool from "./tools/list-files.js".
+   * 2. Create a list_files tool restricted to workspaceRoot.
+   * 3. Register it with the ToolRegistry.
    */
-  const workspaceRoot = resolve(process.cwd(), "sample-project");
-
-  tools.register(createListFilesTool(workspaceRoot));
 
   const configuredModel = process.env.GEMINI_MODEL?.trim();
 

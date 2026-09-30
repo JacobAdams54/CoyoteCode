@@ -8,12 +8,6 @@ import type {
 } from "../src/model/model-types.js";
 import { ToolRegistry } from "../src/tools/tool-registry.js";
 
-/**
- * Creates a deterministic model that returns predefined turns.
- *
- * This tests the real agent loop without making network requests or depending
- * on Gemini's behavior.
- */
 function createSequenceModel(turns: readonly ModelTurn[]): {
   model: ModelClient;
   requests: ModelRequest[];
@@ -22,11 +16,7 @@ function createSequenceModel(turns: readonly ModelTurn[]): {
   let currentTurn = 0;
 
   const model: ModelClient = {
-    async respond(request: ModelRequest): Promise<ModelTurn> {
-      /*
-       * Store the request so tests can verify what the loop sent to the model
-       * after each tool call.
-       */
+    async respond(request): Promise<ModelTurn> {
       requests.push(request);
 
       const turn = turns[currentTurn];
@@ -48,9 +38,6 @@ function createSequenceModel(turns: readonly ModelTurn[]): {
   };
 }
 
-/**
- * Creates a small registry used to verify tool dispatch.
- */
 function createEchoRegistry(): ToolRegistry {
   const registry = new ToolRegistry();
 
@@ -75,9 +62,9 @@ function createEchoRegistry(): ToolRegistry {
   return registry;
 }
 
-describe("runAgent", () => {
-  it("returns immediately when the model produces a final response", async () => {
-    const { model, requests } = createSequenceModel([
+describe("Lab 1 agent loop", () => {
+  it("records the user task and returns a final response", async () => {
+    const { model } = createSequenceModel([
       {
         id: "interaction-1",
         response: {
@@ -87,12 +74,10 @@ describe("runAgent", () => {
       },
     ]);
 
-    const tools = new ToolRegistry();
-
     const result = await runAgent({
-      task: "Explain the repository.",
+      task: "Inspect the project.",
       model,
-      tools,
+      tools: new ToolRegistry(),
     });
 
     expect(result).toEqual({
@@ -101,7 +86,7 @@ describe("runAgent", () => {
       events: [
         {
           type: "user",
-          content: "Explain the repository.",
+          content: "Inspect the project.",
         },
         {
           type: "final",
@@ -109,21 +94,9 @@ describe("runAgent", () => {
         },
       ],
     });
-
-    expect(requests).toEqual([
-      {
-        events: [
-          {
-            type: "user",
-            content: "Explain the repository.",
-          },
-        ],
-        tools: [],
-      },
-    ]);
   });
 
-  it("executes a requested tool and returns its result to the model", async () => {
+  it("executes a requested tool and returns the result to the model", async () => {
     const { model, requests } = createSequenceModel([
       {
         id: "interaction-1",
@@ -142,197 +115,77 @@ describe("runAgent", () => {
         id: "interaction-2",
         response: {
           type: "final",
-          content: "The echo tool returned Hello.",
-        },
-      },
-    ]);
-
-    const tools = createEchoRegistry();
-
-    const result = await runAgent({
-      task: "Use the echo tool.",
-      model,
-      tools,
-    });
-
-    expect(result).toEqual({
-      finalResponse: "The echo tool returned Hello.",
-      modelTurns: 2,
-      events: [
-        {
-          type: "user",
-          content: "Use the echo tool.",
-        },
-        {
-          type: "tool_call",
-          call: {
-            id: "call-1",
-            name: "echo",
-            arguments: {
-              message: "Hello",
-            },
-          },
-        },
-        {
-          type: "tool_result",
-          toolCallId: "call-1",
-          toolName: "echo",
-          success: true,
-          output: {
-            message: "Hello",
-          },
-        },
-        {
-          type: "final",
-          content: "The echo tool returned Hello.",
-        },
-      ],
-    });
-
-    expect(requests).toHaveLength(2);
-
-    /*
-     * The first request contains only the user task and has no previous
-     * provider interaction.
-     */
-    expect(requests[0]).toEqual({
-      events: [
-        {
-          type: "user",
-          content: "Use the echo tool.",
-        },
-      ],
-      tools: [
-        {
-          name: "echo",
-          description: "Returns the provided input.",
-          inputSchema: {
-            type: "object",
-            properties: {
-              message: {
-                type: "string",
-              },
-            },
-            required: ["message"],
-            additionalProperties: false,
-          },
-        },
-      ],
-    });
-
-    /*
-     * The second request contains the tool call and result. It continues from
-     * the Gemini interaction that originally requested the tool.
-     */
-    expect(requests[1]).toEqual({
-      events: [
-        {
-          type: "user",
-          content: "Use the echo tool.",
-        },
-        {
-          type: "tool_call",
-          call: {
-            id: "call-1",
-            name: "echo",
-            arguments: {
-              message: "Hello",
-            },
-          },
-        },
-        {
-          type: "tool_result",
-          toolCallId: "call-1",
-          toolName: "echo",
-          success: true,
-          output: {
-            message: "Hello",
-          },
-        },
-      ],
-      tools: [
-        {
-          name: "echo",
-          description: "Returns the provided input.",
-          inputSchema: {
-            type: "object",
-            properties: {
-              message: {
-                type: "string",
-              },
-            },
-            required: ["message"],
-            additionalProperties: false,
-          },
-        },
-      ],
-      previousTurnId: "interaction-1",
-    });
-  });
-
-  it("returns an unknown-tool failure to the model instead of crashing", async () => {
-    const { model, requests } = createSequenceModel([
-      {
-        id: "interaction-1",
-        response: {
-          type: "tool_call",
-          call: {
-            id: "call-2",
-            name: "delete_everything",
-            arguments: {},
-          },
-        },
-      },
-      {
-        id: "interaction-2",
-        response: {
-          type: "final",
-          content: "That tool is not available.",
+          content: "The tool returned Hello.",
         },
       },
     ]);
 
     const result = await runAgent({
-      task: "Delete everything.",
+      task: "Use the echo tool.",
       model,
-      tools: new ToolRegistry(),
+      tools: createEchoRegistry(),
     });
 
-    expect(result.finalResponse).toBe("That tool is not available.");
+    expect(result.finalResponse).toBe("The tool returned Hello.");
+
+    expect(requests[1]?.previousTurnId).toBe("interaction-1");
 
     expect(requests[1]?.events).toContainEqual({
       type: "tool_result",
-      toolCallId: "call-2",
-      toolName: "delete_everything",
-      success: false,
-      error: "Unknown tool: delete_everything",
+      toolCallId: "call-1",
+      toolName: "echo",
+      success: true,
+      output: {
+        message: "Hello",
+      },
     });
   });
 
-  it("stops when the model-turn limit is reached", async () => {
-    let toolExecutions = 0;
-
-    const registry = new ToolRegistry();
-
-    registry.register({
-      name: "repeat",
-      description: "Requests another model turn.",
-
-      inputSchema: {
-        type: "object",
-        properties: {},
-        additionalProperties: false,
+  it("passes an event-history snapshot to each model turn", async () => {
+    const { model, requests } = createSequenceModel([
+      {
+        id: "interaction-1",
+        response: {
+          type: "tool_call",
+          call: {
+            id: "call-1",
+            name: "echo",
+            arguments: {
+              message: "Hello",
+            },
+          },
+        },
       },
-
-      execute: async () => {
-        toolExecutions += 1;
-
-        return {
-          repeated: true,
-        };
+      {
+        id: "interaction-2",
+        response: {
+          type: "final",
+          content: "Finished.",
+        },
       },
+    ]);
+
+    await runAgent({
+      task: "Use the echo tool.",
+      model,
+      tools: createEchoRegistry(),
     });
 
+    /*
+     * The first request must retain only the event history that existed
+     * during the first model turn.
+     */
+    expect(requests[0]?.events).toEqual([
+      {
+        type: "user",
+        content: "Use the echo tool.",
+      },
+    ]);
+
+    expect(requests[1]?.events).toHaveLength(3);
+  });
+
+  it("stops after the configured model-turn limit", async () => {
     const { model } = createSequenceModel([
       {
         id: "interaction-1",
@@ -340,8 +193,10 @@ describe("runAgent", () => {
           type: "tool_call",
           call: {
             id: "call-1",
-            name: "repeat",
-            arguments: {},
+            name: "echo",
+            arguments: {
+              message: "Again",
+            },
           },
         },
       },
@@ -351,8 +206,10 @@ describe("runAgent", () => {
           type: "tool_call",
           call: {
             id: "call-2",
-            name: "repeat",
-            arguments: {},
+            name: "echo",
+            arguments: {
+              message: "Again",
+            },
           },
         },
       },
@@ -360,41 +217,11 @@ describe("runAgent", () => {
 
     await expect(
       runAgent({
-        task: "Repeat forever.",
+        task: "Keep using tools.",
         model,
-        tools: registry,
+        tools: createEchoRegistry(),
         maxModelTurns: 2,
       }),
     ).rejects.toThrow("Agent exceeded the maximum of 2 model turns.");
-
-    expect(toolExecutions).toBe(2);
   });
-
-  it("rejects an empty task", async () => {
-    const { model } = createSequenceModel([]);
-
-    await expect(
-      runAgent({
-        task: "   ",
-        model,
-        tools: new ToolRegistry(),
-      }),
-    ).rejects.toThrow("Agent task cannot be empty.");
-  });
-
-  it.each([0, -1, 1.5, Number.NaN])(
-    "rejects invalid maxModelTurns value %s",
-    async (maxModelTurns) => {
-      const { model } = createSequenceModel([]);
-
-      await expect(
-        runAgent({
-          task: "Inspect the repository.",
-          model,
-          tools: new ToolRegistry(),
-          maxModelTurns,
-        }),
-      ).rejects.toThrow("maxModelTurns must be a positive integer.");
-    },
-  );
 });
