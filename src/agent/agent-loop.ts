@@ -62,7 +62,7 @@ export async function runAgent(
 
   for (let modelTurns = 1; modelTurns <= maxModelTurns; modelTurns += 1) {
     const turn = await options.model.respond({
-      events,
+      events: [...events],
       tools: options.tools.list(),
 
       /*
