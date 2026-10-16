@@ -1,10 +1,9 @@
 import "dotenv/config";
 
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { resolve } from "node:path";
 
 import { runAgent } from "./agent/agent-loop.js";
-import { AiSdkModel } from "./model/ai-sdk-model.js";
+import { createModelFromEnvironment } from "./model/model-factory.js";
 import type { AgentEvent } from "./model/model-types.js";
 import { createListFilesTool } from "./tools/list-files.js";
 import { ToolRegistry } from "./tools/tool-registry.js";
@@ -59,14 +58,6 @@ function printEvent(event: AgentEvent): void {
  * Creates and runs the complete Lab 1 agent.
  */
 async function main(): Promise<void> {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-
-  if (!apiKey) {
-    throw new Error(
-      "GEMINI_API_KEY is missing. Add it to your local .env file.",
-    );
-  }
-
   /*
    * Additional command-line arguments become the user's task.
    *
@@ -90,10 +81,7 @@ async function main(): Promise<void> {
 
   tools.register(createListFilesTool(workspaceRoot));
 
-  const configuredModel = process.env.GEMINI_MODEL?.trim();
-
-  const google = createGoogleGenerativeAI({ apiKey });
-  const model = new AiSdkModel(google(configuredModel || "gemini-2.5-flash"));
+  const model = createModelFromEnvironment();
 
   console.log("Coyote Code — Lab 1");
   console.log(`Workspace: ${workspaceRoot}`);

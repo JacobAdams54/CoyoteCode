@@ -18,7 +18,7 @@ that make one model/tool run possible.
   the final response, and the number of model turns. `main()` returns no
   application value; failures set the process exit code to `1`.
 - **Calls:** `createListFilesTool()` to build the filesystem tool,
-  `ToolRegistry.register()` to allowlist it, `new AiSdkModel()` to configure
+  `ToolRegistry.register()` to allowlist it, `createModelFromEnvironment()` to configure
   the model, and `runAgent()` to execute the task. Its local `printEvent()`
   only formats events; it does not make decisions or execute tools.
 
@@ -32,6 +32,15 @@ that make one model/tool run possible.
 - **Provider substitution:** The adapter accepts any AI SDK `LanguageModel`,
   including `google("gemini-2.5-flash")`, `openai("gpt-5")`, or
   `anthropic("claude-sonnet-4-5")`.
+
+### [`src/model/model-factory.ts`](../src/model/model-factory.ts): model factory
+
+- **Purpose:** Selects Google, OpenAI, Anthropic, DeepSeek, LM Studio, or
+  Bionic from `AI_PROVIDER` and constructs the corresponding AI SDK
+  `LanguageModel`.
+- **Configuration:** `AI_MODEL` selects the model. Cloud providers use their
+  provider-specific API key. LM Studio and Bionic use OpenAI-compatible
+  endpoints.
 
 ### [`src/agent/agent-loop.ts`](../src/agent/agent-loop.ts): orchestration loop
 

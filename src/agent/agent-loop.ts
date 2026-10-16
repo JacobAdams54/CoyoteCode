@@ -85,7 +85,6 @@ export async function runAgent(
     const toolResult = await options.tools.execute(turn.response.call);
 
     events.push(toolResult);
-
   }
 
   throw new Error(
