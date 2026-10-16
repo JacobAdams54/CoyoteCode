@@ -1,9 +1,10 @@
 import "dotenv/config";
 
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { resolve } from "node:path";
 
 import { runAgent } from "./agent/agent-loop.js";
-import { GeminiModel } from "./model/gemini-model.js";
+import { AiSdkModel } from "./model/ai-sdk-model.js";
 import type { AgentEvent } from "./model/model-types.js";
 import { createListFilesTool } from "./tools/list-files.js";
 import { ToolRegistry } from "./tools/tool-registry.js";
@@ -91,10 +92,8 @@ async function main(): Promise<void> {
 
   const configuredModel = process.env.GEMINI_MODEL?.trim();
 
-  const model = new GeminiModel({
-    apiKey,
-    ...(configuredModel ? { model: configuredModel } : {}),
-  });
+  const google = createGoogleGenerativeAI({ apiKey });
+  const model = new AiSdkModel(google(configuredModel || "gemini-2.5-flash"));
 
   console.log("Coyote Code — Lab 1");
   console.log(`Workspace: ${workspaceRoot}`);

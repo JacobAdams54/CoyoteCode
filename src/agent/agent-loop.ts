@@ -49,7 +49,7 @@ export async function runAgent(
 
   /*
    * The event log is the provider-neutral record of the complete run.
-   * Gemini-specific interaction objects do not belong here.
+   * Provider-specific interaction objects do not belong here.
    */
   const events: AgentEvent[] = [
     {
@@ -58,19 +58,10 @@ export async function runAgent(
     },
   ];
 
-  let previousTurnId: string | undefined;
-
   for (let modelTurns = 1; modelTurns <= maxModelTurns; modelTurns += 1) {
     const turn = await options.model.respond({
       events: [...events],
       tools: options.tools.list(),
-
-      /*
-       * Gemini does not need a previous interaction ID on the initial turn.
-       * Later turns use it to associate tool results with the interaction that
-       * requested them.
-       */
-      ...(previousTurnId ? { previousTurnId } : {}),
     });
 
     /*
@@ -95,11 +86,6 @@ export async function runAgent(
 
     events.push(toolResult);
 
-    /*
-     * The next Gemini request continues from the interaction that produced
-     * this tool call.
-     */
-    previousTurnId = turn.id;
   }
 
   throw new Error(

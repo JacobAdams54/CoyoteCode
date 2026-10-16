@@ -21,6 +21,12 @@ export interface ToolCall {
   id: string;
   name: string;
   arguments: unknown;
+
+  /**
+   * Opaque provider metadata required to replay some model responses.
+   * CoyoteCode preserves this value without interpreting it.
+   */
+  providerMetadata?: unknown;
 }
 
 /**

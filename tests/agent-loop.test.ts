@@ -12,7 +12,7 @@ import { ToolRegistry } from "../src/tools/tool-registry.js";
  * Creates a deterministic model that returns predefined turns.
  *
  * This tests the real agent loop without making network requests or depending
- * on Gemini's behavior.
+ * on provider behavior.
  */
 function createSequenceModel(turns: readonly ModelTurn[]): {
   model: ModelClient;
@@ -79,7 +79,6 @@ describe("runAgent", () => {
   it("returns immediately when the model produces a final response", async () => {
     const { model, requests } = createSequenceModel([
       {
-        id: "interaction-1",
         response: {
           type: "final",
           content: "Task complete.",
@@ -126,7 +125,6 @@ describe("runAgent", () => {
   it("executes a requested tool and returns its result to the model", async () => {
     const { model, requests } = createSequenceModel([
       {
-        id: "interaction-1",
         response: {
           type: "tool_call",
           call: {
@@ -139,7 +137,6 @@ describe("runAgent", () => {
         },
       },
       {
-        id: "interaction-2",
         response: {
           type: "final",
           content: "The echo tool returned Hello.",
@@ -221,8 +218,8 @@ describe("runAgent", () => {
     });
 
     /*
-     * The second request contains the tool call and result. It continues from
-     * the Gemini interaction that originally requested the tool.
+     * The second request contains the tool call and result from the first
+     * model decision.
      */
     expect(requests[1]).toEqual({
       events: [
@@ -266,14 +263,12 @@ describe("runAgent", () => {
           },
         },
       ],
-      previousTurnId: "interaction-1",
     });
   });
 
   it("returns an unknown-tool failure to the model instead of crashing", async () => {
     const { model, requests } = createSequenceModel([
       {
-        id: "interaction-1",
         response: {
           type: "tool_call",
           call: {
@@ -284,7 +279,6 @@ describe("runAgent", () => {
         },
       },
       {
-        id: "interaction-2",
         response: {
           type: "final",
           content: "That tool is not available.",
@@ -335,7 +329,6 @@ describe("runAgent", () => {
 
     const { model } = createSequenceModel([
       {
-        id: "interaction-1",
         response: {
           type: "tool_call",
           call: {
@@ -346,7 +339,6 @@ describe("runAgent", () => {
         },
       },
       {
-        id: "interaction-2",
         response: {
           type: "tool_call",
           call: {

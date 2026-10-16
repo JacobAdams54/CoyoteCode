@@ -44,37 +44,25 @@ export type AgentEvent =
 /**
  * Provider-neutral input sent from the agent loop to a model adapter.
  *
- * The agent loop does not need to know how Gemini represents tools,
+ * The agent loop does not need to know how a provider represents tools,
  * conversations, or function results.
  */
 export interface ModelRequest {
   events: readonly AgentEvent[];
   tools: readonly ToolSummary[];
-
-  /**
-   * Provider conversation identifier returned by the previous model turn.
-   *
-   * Gemini uses this value to continue the same interaction after a tool
-   * result is produced.
-   */
-  previousTurnId?: string;
 }
 
 /**
  * Provider-neutral result returned from a model adapter.
- *
- * The ID allows the next request to continue the provider's conversation.
  */
 export interface ModelTurn {
-  id: string;
   response: ModelResponse;
 }
 
 /**
  * Provider-neutral interface used by the agent loop.
  *
- * GeminiModel implements this interface now. Other providers can implement
- * the same contract without changing the agent loop.
+ * Provider adapters implement this interface without changing the agent loop.
  */
 export interface ModelClient {
   respond(request: ModelRequest): Promise<ModelTurn>;

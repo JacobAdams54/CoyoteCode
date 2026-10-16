@@ -9,7 +9,7 @@ that make one model/tool run possible.
 
 - **Purpose:** Loads environment configuration, accepts the task from the
   command line (or uses the built-in default), creates the tool registry and
-  Gemini model, and starts one agent run. It also prints the provider-neutral
+  AI SDK-backed model, and starts one agent run. It also prints the provider-neutral
   event history and handles startup/run failures.
 - **Input:** `GEMINI_API_KEY`, optional `GEMINI_MODEL`, the current working
   directory, and command-line arguments. The controlled workspace is
@@ -18,26 +18,20 @@ that make one model/tool run possible.
   the final response, and the number of model turns. `main()` returns no
   application value; failures set the process exit code to `1`.
 - **Calls:** `createListFilesTool()` to build the filesystem tool,
-  `ToolRegistry.register()` to allowlist it, `new GeminiModel()` to configure
+  `ToolRegistry.register()` to allowlist it, `new AiSdkModel()` to configure
   the model, and `runAgent()` to execute the task. Its local `printEvent()`
   only formats events; it does not make decisions or execute tools.
 
-### [`src/model/gemini-model.ts`](../src/model/gemini-model.ts): model adapter
+### [`src/model/ai-sdk-model.ts`](../src/model/ai-sdk-model.ts): model adapter
 
-- **Purpose:** Implements the provider-neutral `ModelClient` interface using
-  Google Gemini. It translates the application’s event history and tool
-  summaries into Gemini’s request shape, then translates Gemini’s response
-  into either a tool-call decision or a final response.
-- **Input:** A `ModelRequest` containing the event history, `ToolSummary`
-  values, and optionally the previous interaction ID. The constructor takes a
-  Gemini API key and optional model name.
-- **Output:** A `ModelTurn` containing Gemini’s interaction ID and exactly one
-  provider-neutral response: a `tool_call` with a name and untrusted arguments,
-  or a `final` text response. The adapter sends only tool names, descriptions,
-  and schemas to Gemini—not executable functions.
-- **Calls:** The Google GenAI `interactions.create()` API. It is called by
-  [`agent-loop.ts`](../src/agent/agent-loop.ts); it does not call the tool
-  registry or filesystem itself.
+- **Purpose:** Implements `ModelClient` with AI SDK `generateText()` for one
+  model turn at a time. It translates CoyoteCode events and tool summaries into
+  AI SDK messages and non-executable tool definitions.
+- **Output:** A provider-neutral `ModelTurn`; tool execution remains in
+  `ToolRegistry`.
+- **Provider substitution:** The adapter accepts any AI SDK `LanguageModel`,
+  including `google("gemini-2.5-flash")`, `openai("gpt-5")`, or
+  `anthropic("claude-sonnet-4-5")`.
 
 ### [`src/agent/agent-loop.ts`](../src/agent/agent-loop.ts): orchestration loop
 
@@ -90,35 +84,35 @@ filesystem tool
 
 ## Model decisions versus tool execution
 
-Gemini makes the decision: it receives the task/result context and tool
+The configured AI SDK model makes the decision: it receives the task/result context and tool
 schemas, then chooses either a tool call or a final response. The application
 executes the decision: [`ToolRegistry`](../src/tools/tool-registry.ts) checks
 the allowlist and invokes the selected trusted function, while
 [`list-files.ts`](../src/tools/list-files.ts) validates arguments and reads
-the controlled filesystem. Gemini never receives the executable function.
+the controlled filesystem. The model never receives the executable function.
 
 ## Call walkthrough
 
 1. [`index.ts`](../src/index.ts) builds a `ToolRegistry`, registers the
    `list_files` definition from [`list-files.ts`](../src/tools/list-files.ts),
-   creates [`GeminiModel`](../src/model/gemini-model.ts), and calls
+   creates [`AiSdkModel`](../src/model/ai-sdk-model.ts), and calls
    [`runAgent`](../src/agent/agent-loop.ts).
-2. `runAgent` asks `GeminiModel.respond()` for a decision, passing the task
+2. `runAgent` asks `AiSdkModel.respond()` for a decision, passing the task
    event and `ToolRegistry.list()` output.
-3. If Gemini chooses a tool, `runAgent` passes its `ToolCall` to
+3. If the model chooses a tool, `runAgent` passes its `ToolCall` to
    `ToolRegistry.execute()`. The registry dispatches to `list_files`, which
    returns directory data or an error.
-4. `runAgent` appends that result and asks Gemini for the next decision. When
-   Gemini returns final text, `runAgent` returns the event history to `index.ts`,
+4. `runAgent` appends that result and asks the model for the next decision. When
+   the model returns final text, `runAgent` returns the event history to `index.ts`,
    which prints it.
 
 ```text
 index.ts
   -> runAgent
-       -> GeminiModel.respond (model decides)
+       -> AiSdkModel.respond (model decides)
        -> ToolRegistry.execute (application dispatches)
             -> list-files.execute (filesystem work)
-       -> GeminiModel.respond (uses tool result)
+       -> AiSdkModel.respond (uses tool result)
   -> printEvent / console
 ```
 
@@ -131,5 +125,5 @@ name, description, input schema, and an `execute(input)` function that
 validates untrusted input at runtime. Then import it in
 [`src/index.ts`](../src/index.ts), create it with any trusted configuration,
 and call `tools.register(newTool)` after `const tools = new ToolRegistry()`.
-The agent loop and Gemini adapter will automatically expose its summary to the
+The agent loop and AI SDK adapter will automatically expose its summary to the
 model and dispatch matching calls; no model-specific registration is needed.
