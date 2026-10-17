@@ -44,7 +44,7 @@ async function main(): Promise<void> {
 
   const model = createModelFromEnvironment();
 
-  console.log("Coyote Code — Lab 1");
+  console.log("Coyote Code");
   console.log(`Workspace: ${workspaceRoot}`);
   console.log(`Tools: ${tools.list().map((t) => t.name).join(", ")}`);
 

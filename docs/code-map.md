@@ -1,69 +1,84 @@
-# Coyote Code: code map
+# CoyoteCode: Code Map
 
-This map starts at [`src/index.ts`](../src/index.ts) and follows the modules
-that make one model/tool run possible.
+This map explains the responsibilities of each module and traces how one agent execution flows through the codebase.
 
-## Responsibilities and boundaries
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Terminal as User / CLI
+    participant Index as index.ts
+    participant Agent as agent.ts (Loop)
+    participant Model as model.ts (OpenAI SDK)
+    participant Tools as tools.ts (Registry)
 
-### [`src/types.ts`](../src/types.ts): core data contracts
+    Terminal->>Index: npm run dev -- "Task"
+    Index->>Agent: runAgent({ task, model, tools })
 
-- **Purpose:** Defines the industry-standard agent types: `ToolDefinition`, `ToolCall`,
-  `ToolSummary`, `Message` (`user` | `assistant` | `tool`), and `ModelClient`.
-- **Why it matters:** Students can open this single file to understand the shapes of all
-  messages and tools without navigating nested type files.
+    loop Sense → Plan → Act (until final response or maxTurns)
+        Agent->>Model: respond(messages, toolSchemas)
+        Model-->>Agent: AssistantMessage (toolCalls: [list_files])
+        Agent->>Tools: execute(call)
+        Tools->>Tools: safePath() validation
+        Tools-->>Agent: Message (role: "tool", result)
+        Agent->>Agent: messages.push(toolResult)
+    end
 
-### [`src/index.ts`](../src/index.ts): application entry point
-
-- **Purpose:** Loads environment configuration, accepts the task from the command line
-  (or uses the built-in default), creates the tool registry and model, and starts one agent run.
-  It also prints the message history trace.
-- **Input:** `GEMINI_API_KEY` (or local model config), current working directory, and command-line arguments.
-  The controlled workspace is `sample-project` below the current working directory.
-- **Output:** Console output for the workspace, registered tools, each message in the trace,
-  the final response, and the number of turns.
-
-### [`src/agent.ts`](../src/agent.ts): orchestration loop
-
-- **Purpose:** Coordinates the model-decision/tool-execution cycle until the model returns
-  a final answer or the turn limit is exceeded.
-- **Input:** `RunAgentOptions`: task, `ModelClient`, `ToolRegistry`, and optional `maxTurns` (default 6).
-- **Output:** `AgentRunResult` with the final response text, ordered `messages`, and number of turns.
-- **Calls:** On each turn, calls `model.respond(messages, tools.list())`. If the response contains
-  tool calls, dispatches each to `tools.execute()` and appends the result messages; if final, returns.
-
-### [`src/tools.ts`](../src/tools.ts): tool registry and filesystem tools
-
-- **Purpose:** Provides both the `ToolRegistry` (the application allowlist and dispatch boundary)
-  and `createListFilesTool` (a read-only filesystem tool restricted to the workspace).
-- **Registry:** Stores trusted `ToolDefinition` instances. Exposes `list()` (parameters only, no executable code)
-  and `execute()` (dispatches model calls and returns structured tool messages).
-- **List Files Tool:** Lists entries in a directory using a clean 5-line `safePath` workspace check.
-
-### [`src/model.ts`](../src/model.ts): OpenAI model client and factory
-
-- **Purpose:** Implements `ModelClient` using the official `openai` SDK, and provides
-  `createModelFromEnvironment()` to initialize Google Gemini (default) or Local LLM / LM Studio.
-
-## Call walkthrough
-
-```text
-index.ts
-  -> runAgent (agent.ts)
-       -> OpenAiModel.respond (model.ts — model decides)
-       -> ToolRegistry.execute (tools.ts — application dispatches)
-            -> list_files.execute (tools.ts — filesystem work)
-       -> OpenAiModel.respond (model.ts — uses tool result)
-  -> printMessage / console (index.ts)
+    Agent->>Model: respond(messages, toolSchemas)
+    Model-->>Agent: AssistantMessage (final text answer)
+    Agent-->>Index: AgentRunResult (finalResponse, messages)
+    Index-->>Terminal: Print formatted trace & answer
 ```
 
-## Adding another tool
+## Module Responsibilities
 
-Define a new tool function matching the `ToolDefinition` interface in [`src/tools.ts`](../src/tools.ts):
-provide a `name`, `description`, `parameters`, and an `execute(args)` function. Then register it in
-[`src/index.ts`](../src/index.ts):
+### [`src/types.ts`](../src/types.ts): Core Data Contracts
+- Defines the industry-standard agent interfaces: `ToolDefinition`, `ToolCall`, `ToolSummary`, `Message` (`user` | `assistant` | `tool`), and `ModelClient`.
+- Students can open this single file to see the shape of the entire system.
 
-```ts
-tools.register(createNewTool(workspaceRoot));
-```
+### [`src/index.ts`](../src/index.ts): Application Entry Point
+- Reads CLI arguments, initializes the `ToolRegistry` with `sample-project` as the workspace, builds the model client, and starts `runAgent()`.
+- Prints the formatted trace (`[USER]`, `[ASSISTANT → TOOL]`, `[TOOL → ASSISTANT]`, `[ASSISTANT]`).
 
-The agent loop and model client will automatically expose its parameters to the model and dispatch calls to it.
+### [`src/agent.ts`](../src/agent.ts): Orchestration Loop
+- Implements the core `while` loop:
+  1. Ask `model.respond(messages, tools.list())`.
+  2. If no tool calls, return `finalResponse`.
+  3. If tool calls exist, execute each via `tools.execute(call)` and append to `messages`.
+  4. Repeat until done or `maxTurns` is reached.
+
+### [`src/tools.ts`](../src/tools.ts): Tool Registry and Sandboxing
+- **`ToolRegistry`**: The application's security boundary. Models can only execute tools registered here. Converts exceptions into clean JSON error results.
+- **`safePath`**: 5-line containment helper ensuring all file access stays inside the workspace.
+- **`createListFilesTool`**: Lists entries in a directory inside the workspace.
+
+### [`src/model.ts`](../src/model.ts): Model Client & Factory
+- Implements `ModelClient` using the official `openai` SDK.
+- Connects seamlessly to:
+  - **Google Gemini (Default)**: via Google's official OpenAI-compatible endpoint.
+  - **Local LLMs / LM Studio**: via `AI_PROVIDER=lmstudio`.
+
+## Adding a New Tool
+
+1. In [`src/tools.ts`](../src/tools.ts), define a function returning `ToolDefinition`:
+   ```ts
+   export function createMyTool(workspaceRoot: string): ToolDefinition {
+     return {
+       name: "my_tool",
+       description: "What the tool does",
+       parameters: {
+         type: "object",
+         properties: { param1: { type: "string" } },
+         required: ["param1"],
+       },
+       async execute(args) {
+         // Perform work safely using safePath(workspaceRoot, ...)
+         return { success: true };
+       },
+     };
+   }
+   ```
+2. In [`src/index.ts`](../src/index.ts), register it:
+   ```ts
+   tools.register(createMyTool(workspaceRoot));
+   ```
+3. The agent loop and model client will automatically expose it to the LLM and dispatch calls.
