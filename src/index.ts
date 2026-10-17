@@ -1,134 +1,64 @@
 import "dotenv/config";
-
 import { resolve } from "node:path";
 
-import { runAgent } from "./agent/agent-loop.js";
-import { GeminiModel } from "./model/gemini-model.js";
-import type { AgentEvent } from "./model/model-types.js";
-import { createListFilesTool } from "./tools/list-files.js";
-import { ToolRegistry } from "./tools/tool-registry.js";
+import { runAgent } from "./agent.js";
+import { createModelFromEnvironment } from "./model.js";
+import { createListFilesTool, ToolRegistry } from "./tools.js";
+import type { Message } from "./types.js";
 
 const DEFAULT_TASK =
   'Use list_files with path "." to inspect the sample project. ' +
   "Then summarize the files and directories you found.";
 
-/**
- * Prints the provider-neutral event history produced by the agent loop.
- *
- * The trace makes the model → tool → result → model cycle visible during the
- * demonstration.
- */
-function printEvent(event: AgentEvent): void {
-  switch (event.type) {
+function printMessage(msg: Message): void {
+  switch (msg.role) {
     case "user":
-      console.log("\n[USER]");
-      console.log(event.content);
-      return;
+      console.log(`\n[USER]\n${msg.content}`);
+      break;
 
-    case "tool_call":
-      console.log("\n[MODEL → TOOL]");
-      console.log(`Tool: ${event.call.name}`);
-      console.log(
-        `Arguments: ${JSON.stringify(event.call.arguments, null, 2)}`,
-      );
-      return;
-
-    case "tool_result":
-      console.log("\n[TOOL → MODEL]");
-      console.log(`Tool: ${event.toolName}`);
-
-      if (event.success) {
-        console.log("Status: success");
-        console.log(JSON.stringify(event.output, null, 2));
-      } else {
-        console.log("Status: failure");
-        console.log(event.error);
+    case "assistant":
+      if (msg.toolCalls && msg.toolCalls.length > 0) {
+        for (const call of msg.toolCalls) {
+          console.log(
+            `\n[ASSISTANT → TOOL]\nTool: ${call.name}\nArguments: ${JSON.stringify(call.arguments, null, 2)}`,
+          );
+        }
       }
+      if (msg.content) {
+        console.log(`\n[ASSISTANT]\n${msg.content}`);
+      }
+      break;
 
-      return;
-
-    case "final":
-      console.log("\n[FINAL RESPONSE]");
-      console.log(event.content);
-      return;
+    case "tool":
+      console.log(`\n[TOOL → ASSISTANT]\nTool: ${msg.toolName}\nResult: ${msg.content}`);
+      break;
   }
 }
 
-/**
- * Creates and runs the complete Lab 1 agent.
- */
 async function main(): Promise<void> {
-  const apiKey = process.env.GEMINI_API_KEY?.trim();
-
-  if (!apiKey) {
-    throw new Error(
-      "GEMINI_API_KEY is missing. Add it to your local .env file.",
-    );
-  }
-
-  /*
-   * Additional command-line arguments become the user's task.
-   *
-   * Example:
-   * npm run dev -- "List the files in src."
-   */
-  const commandLineTask = process.argv.slice(2).join(" ").trim();
-  const task = commandLineTask || DEFAULT_TASK;
-
-  /*
-   * The model receives only the tool schema. It never receives the executable
-   * function directly.
-   */
-  const tools = new ToolRegistry();
-
-  /*
-   * Restrict filesystem access to the controlled sample project instead of
-   * allowing the agent to inspect the entire repository or machine.
-   */
+  const task = process.argv.slice(2).join(" ").trim() || DEFAULT_TASK;
   const workspaceRoot = resolve(process.cwd(), "sample-project");
 
+  const tools = new ToolRegistry();
   tools.register(createListFilesTool(workspaceRoot));
 
-  const configuredModel = process.env.GEMINI_MODEL?.trim();
+  const model = createModelFromEnvironment();
 
-  const model = new GeminiModel({
-    apiKey,
-    ...(configuredModel ? { model: configuredModel } : {}),
-  });
-
-  console.log("Coyote Code — Lab 1");
+  console.log("Coyote Code");
   console.log(`Workspace: ${workspaceRoot}`);
-  console.log(
-    `Tools: ${tools
-      .list()
-      .map((tool) => tool.name)
-      .join(", ")}`,
-  );
+  console.log(`Tools: ${tools.list().map((t) => t.name).join(", ")}`);
 
-  const result = await runAgent({
-    task,
-    model,
-    tools,
-    maxModelTurns: 4,
-  });
+  const result = await runAgent({ task, model, tools, maxTurns: 4 });
 
-  for (const event of result.events) {
-    printEvent(event);
+  for (const msg of result.messages) {
+    printMessage(msg);
   }
 
-  console.log(`\nModel turns: ${result.modelTurns}`);
+  console.log(`\nTurns taken: ${result.turns}`);
 }
 
-/*
- * Keep startup failures controlled. Setting exitCode allows Node to finish
- * normal cleanup while still reporting failure to the terminal.
- */
 main().catch((error: unknown) => {
-  const message =
-    error instanceof Error ? error.message : "Unknown application error";
-
-  console.error("\nCoyote Code failed:");
-  console.error(message);
-
+  const message = error instanceof Error ? error.message : "Unknown error";
+  console.error(`\nCoyote Code failed: ${message}`);
   process.exitCode = 1;
 });

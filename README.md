@@ -1,56 +1,51 @@
 # CoyoteCode
 
-CoyoteCode is a beginner-friendly TypeScript workshop project for building a
-cloud coding agent. The project includes offline checks and an optional Gemini
-API demo.
+CoyoteCode is a beginner-friendly TypeScript workshop project for building a terminal coding agent (like Claude Code, Antigravity, or OpenCode). 
+
+Students learn how tool calling, workspace sandboxing, and the core agent loop work under the hood.
+
+```mermaid
+flowchart TD
+    User([User Task]) --> Loop[Agent Loop]
+    Loop --> Model[LLM Model Client]
+    Model --> Decision{Tool Call or Answer?}
+    Decision -- "Tool Call" --> Registry[Tool Registry]
+    Registry --> Sandbox["Tool Execution (Sandbox)"]
+    Sandbox --> Result[Tool Result Message]
+    Result --> Loop
+    Decision -- "Final Answer" --> Done([Print Response & Exit])
+```
 
 ## Prerequisites
 
-- Node.js **24.x** (the supported range is `>=24 <25`)
+- Node.js **20.x or higher** (`node -v`)
 - npm (included with Node.js)
 - Git
 
-Run every command below from the repository root:
+## 1. Install and verify
 
-```text
-CoyoteCode/
-```
-
-## Install and verify the project
-
-Clone the repository into a new directory, then enter that directory:
+Clone the repository and install dependencies:
 
 ```bash
 git clone https://github.com/JacobAdams54/CoyoteCode.git
 cd CoyoteCode
+npm install
 ```
 
-Install the locked dependencies:
-
-```bash
-npm ci
-```
-
-Run the offline checks. These do not require an API key or network access to
-Gemini:
+Run the offline checks (these verify types and logic without needing an API key):
 
 ```bash
 npm run check
 npm test
 ```
 
-- `npm run check` runs the TypeScript compiler without creating build files.
+- `npm run check` runs the TypeScript compiler (`tsc --noEmit`).
 - `npm test` runs the Vitest test suite once.
-- `npm run test:watch` runs Vitest in watch mode while developing.
+- `npm run test:watch` runs tests in watch mode during development.
 
-At this point the project is installed and verified. The tests and type check
-are separate from the Gemini demo.
+## 2. Run the live coding agent
 
-## Optional Gemini API demo
-
-The demo sends a request to Google's Gemini API, so it requires a Gemini API
-key and network access. Keep credentials in a local `.env` file; never commit
-that file.
+The demo connects to Google's Gemini API (default) or any local OpenAI-compatible endpoint (LM Studio / Ollama).
 
 1. Copy the example configuration:
 
@@ -58,49 +53,42 @@ that file.
    cp .env.example .env
    ```
 
-2. Edit `.env` and set `GEMINI_API_KEY` to your own key. `GEMINI_MODEL` may be
-   left at the example value or changed to a model available to your account;
-   it controls the agent demo.
+2. Add your free Gemini API key to `.env` (get one at [aistudio.google.com](https://aistudio.google.com/)):
 
-3. Run the one-request connection check:
-
-   ```bash
-   npm run gemini:check
+   ```env
+   GEMINI_API_KEY=your_key_here
    ```
 
-4. Run the agent demo:
+   *(Optional: To run offline with local models, set `AI_PROVIDER=lmstudio` instead.)*
+
+3. Run the agent:
 
    ```bash
    npm run dev
    ```
 
-   To provide a different task:
+   To give the agent a custom task:
 
    ```bash
-   npm run dev -- "List the files in src."
+   npm run dev -- "List the files inside src."
    ```
-
-The demo is not part of `npm test`. It makes a live API request and may incur
-provider charges.
-
-## Troubleshooting
-
-- `npm ci` must be run from the repository root, where `package-lock.json`
-  exists. If Node is outside the supported range, install Node 24.x and retry.
-- If the Gemini commands fail with
-  `GEMINI_API_KEY is missing. Add it to your local .env file.`, create `.env`
-  from `.env.example` and set the key. Do not paste the key into issues,
-  commits, or chat.
-- If `npm run check` or `npm test` fails, first confirm the install completed
-  successfully and that the command is being run from the repository root.
 
 ## Available commands
 
-| Command | Purpose | API key required |
-| --- | --- | --- |
-| `npm ci` | Install locked dependencies | No |
-| `npm run check` | Type-check the project | No |
-| `npm test` | Run tests once | No |
-| `npm run test:watch` | Run tests in watch mode | No |
-| `npm run gemini:check` | Check a live Gemini connection | Yes |
-| `npm run dev` | Run the Gemini coding-agent demo | Yes |
+| Command | Purpose | Network / API key required |
+| :--- | :--- | :--- |
+| `npm run check` | Type-check project with TypeScript | No |
+| `npm test` | Run fast offline test suite | No |
+| `npm run test:watch` | Run tests in interactive watch mode | No |
+| `npm run dev` | Run the live coding agent | Yes |
+
+## Project Structure
+
+```text
+src/
+├── types.ts    # Core data contracts: ToolDefinition, ToolCall, Message, ModelClient
+├── tools.ts    # ToolRegistry & list_files with safePath sandboxing
+├── model.ts    # OpenAI SDK client configured for Google Gemini & Local LLMs
+├── agent.ts    # The core Sense → Plan → Act while-loop
+└── index.ts    # Application entry point & CLI trace runner
+```

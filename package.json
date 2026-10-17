@@ -1,13 +1,12 @@
 {
   "name": "coyotecode_wed",
   "version": "1.0.0",
-  "description": "Coyote Code is a beginner-friendly workshop project for building a cloud coding agent with React and TypeScript. Students learn tool calling, repository inspection, controlled code changes, testing, human approval, sandboxing, and cloud deployment.",
+  "description": "CoyoteCode is a beginner-friendly workshop project for building a terminal coding agent with TypeScript. Students learn tool calling, repository inspection, the agent loop, sandboxing, and autonomous problem solving.",
   "scripts": {
     "test": "vitest run",
     "dev": "tsx src/index.ts",
     "check": "tsc --noEmit",
-    "test:watch": "vitest",
-    "gemini:check": "tsx src/model/check-gemini.ts"
+    "test:watch": "vitest"
   },
   "repository": {
     "type": "git",
@@ -28,10 +27,10 @@
     "vitest": "^5.0.2"
   },
   "engines": {
-    "node": ">=24 <25"
+    "node": ">=20"
   },
   "dependencies": {
-    "@google/genai": "^2.24.0",
-    "dotenv": "^18.0.4"
+    "dotenv": "^18.0.4",
+    "openai": "^7.35.0"
   }
 }
