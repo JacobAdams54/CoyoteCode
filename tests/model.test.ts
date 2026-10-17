@@ -79,6 +79,14 @@ describe("OpenAiModel", () => {
           id: "call-99",
           name: "list_files",
           arguments: { path: "src" },
+          raw: {
+            id: "call-99",
+            type: "function",
+            function: {
+              name: "list_files",
+              arguments: JSON.stringify({ path: "src" }),
+            },
+          },
         },
       ],
     });

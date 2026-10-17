@@ -25,11 +25,11 @@ export class OpenAiModel implements ModelClient {
         return {
           role: "assistant",
           content: m.content ?? null,
-          tool_calls: m.toolCalls.map((tc) => ({
+          tool_calls: m.toolCalls.map((tc) => (tc.raw as OpenAI.ChatCompletionMessageToolCall) ?? {
             id: tc.id,
             type: "function" as const,
             function: { name: tc.name, arguments: JSON.stringify(tc.arguments) },
-          })),
+          }),
         };
       }
       return {
@@ -61,6 +61,7 @@ export class OpenAiModel implements ModelClient {
           id: tc.id,
           name: tc.function.name,
           arguments: JSON.parse(tc.function.arguments || "{}"),
+          raw: tc,
         }));
     }
 
