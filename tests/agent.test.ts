@@ -65,7 +65,7 @@ describe("runAgent", () => {
     tools.register({
       name: "echo",
       description: "Echoes input",
-      inputSchema: { type: "object", properties: { msg: { type: "string" } } },
+      parameters: { type: "object", properties: { msg: { type: "string" } } },
       execute: async (args) => args.msg,
     });
 
@@ -109,7 +109,7 @@ describe("runAgent", () => {
     tools.register({
       name: "echo",
       description: "Echo",
-      inputSchema: { type: "object", properties: {} },
+      parameters: { type: "object", properties: {} },
       execute: async () => "ok",
     });
 

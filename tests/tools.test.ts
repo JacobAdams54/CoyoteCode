@@ -8,7 +8,7 @@ describe("ToolRegistry", () => {
     registry.register({
       name: "echo",
       description: "Echo tool",
-      inputSchema: { type: "object", properties: { text: { type: "string" } } },
+      parameters: { type: "object", properties: { text: { type: "string" } } },
       execute: async (args) => args.text,
     });
 
@@ -16,7 +16,7 @@ describe("ToolRegistry", () => {
       {
         name: "echo",
         description: "Echo tool",
-        inputSchema: { type: "object", properties: { text: { type: "string" } } },
+        parameters: { type: "object", properties: { text: { type: "string" } } },
       },
     ]);
   });
@@ -26,7 +26,7 @@ describe("ToolRegistry", () => {
     registry.register({
       name: "echo",
       description: "Echo tool",
-      inputSchema: { type: "object", properties: {} },
+      parameters: { type: "object", properties: {} },
       execute: async (args) => `Echo: ${args.msg}`,
     });
 

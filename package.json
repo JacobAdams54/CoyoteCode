@@ -30,9 +30,7 @@
     "node": ">=24 <25"
   },
   "dependencies": {
-    "@ai-sdk/google": "^4.0.98",
-    "@ai-sdk/openai": "^4.0.95",
-    "ai": "^7.0.142",
-    "dotenv": "^18.0.4"
+    "dotenv": "^18.0.4",
+    "openai": "^7.35.0"
   }
 }

@@ -1,49 +1,87 @@
 import { describe, expect, it } from "vitest";
-import { createModelFromEnvironment, toAiSdkMessages } from "../src/model.js";
+import OpenAI from "openai";
+import { createModelFromEnvironment, OpenAiModel } from "../src/model.js";
 
-describe("toAiSdkMessages", () => {
-  it("converts user, assistant, and tool messages to AI SDK format", () => {
-    const aiMessages = toAiSdkMessages([
-      { role: "user", content: "List files" },
-      {
-        role: "assistant",
-        toolCalls: [{ id: "call-1", name: "list_files", arguments: { path: "." } }],
+describe("OpenAiModel", () => {
+  it("formats messages and unpacks model assistant text", async () => {
+    const mockOpenAi = {
+      chat: {
+        completions: {
+          create: async (params: any) => ({
+            choices: [
+              {
+                message: {
+                  role: "assistant",
+                  content: "I found 3 files.",
+                },
+              },
+            ],
+          }),
+        },
       },
-      {
-        role: "tool",
-        toolCallId: "call-1",
-        toolName: "list_files",
-        content: JSON.stringify(["index.ts"]),
-      },
-      { role: "assistant", content: "Done listing files." },
-    ]);
+    } as unknown as OpenAI;
 
-    expect(aiMessages).toEqual([
-      { role: "user", content: "List files" },
-      {
-        role: "assistant",
-        content: [
-          {
-            type: "tool-call",
-            toolCallId: "call-1",
-            toolName: "list_files",
-            input: { path: "." },
-          },
-        ],
+    const model = new OpenAiModel(mockOpenAi, "test-model");
+    const response = await model.respond(
+      [{ role: "user", content: "List the files" }],
+      [],
+    );
+
+    expect(response).toEqual({
+      role: "assistant",
+      content: "I found 3 files.",
+    });
+  });
+
+  it("unpacks tool calls from the model response", async () => {
+    const mockOpenAi = {
+      chat: {
+        completions: {
+          create: async (params: any) => ({
+            choices: [
+              {
+                message: {
+                  role: "assistant",
+                  tool_calls: [
+                    {
+                      id: "call-99",
+                      type: "function",
+                      function: {
+                        name: "list_files",
+                        arguments: JSON.stringify({ path: "src" }),
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+        },
       },
-      {
-        role: "tool",
-        content: [
-          {
-            type: "tool-result",
-            toolCallId: "call-1",
-            toolName: "list_files",
-            output: { type: "text", value: JSON.stringify(["index.ts"]) },
-          },
-        ],
-      },
-      { role: "assistant", content: "Done listing files." },
-    ]);
+    } as unknown as OpenAI;
+
+    const model = new OpenAiModel(mockOpenAi, "test-model");
+    const response = await model.respond(
+      [{ role: "user", content: "Inspect src" }],
+      [
+        {
+          name: "list_files",
+          description: "List directory",
+          parameters: { type: "object", properties: {} },
+        },
+      ],
+    );
+
+    expect(response).toEqual({
+      role: "assistant",
+      toolCalls: [
+        {
+          id: "call-99",
+          name: "list_files",
+          arguments: { path: "src" },
+        },
+      ],
+    });
   });
 });
 

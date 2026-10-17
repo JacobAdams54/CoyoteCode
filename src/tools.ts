@@ -13,10 +13,10 @@ export class ToolRegistry {
   }
 
   list(): ToolSummary[] {
-    return Array.from(this.tools.values()).map(({ name, description, inputSchema }) => ({
+    return Array.from(this.tools.values()).map(({ name, description, parameters }) => ({
       name,
       description,
-      inputSchema,
+      parameters,
     }));
   }
 
@@ -66,7 +66,7 @@ export function createListFilesTool(workspaceRoot: string): ToolDefinition {
   return {
     name: "list_files",
     description: "Lists files and directories inside a relative workspace path.",
-    inputSchema: {
+    parameters: {
       type: "object",
       properties: {
         path: {

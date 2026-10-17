@@ -35,35 +35,35 @@ that make one model/tool run possible.
 
 - **Purpose:** Provides both the `ToolRegistry` (the application allowlist and dispatch boundary)
   and `createListFilesTool` (a read-only filesystem tool restricted to the workspace).
-- **Registry:** Stores trusted `ToolDefinition` instances. Exposes `list()` (schemas only, no executable code)
+- **Registry:** Stores trusted `ToolDefinition` instances. Exposes `list()` (parameters only, no executable code)
   and `execute()` (dispatches model calls and returns structured tool messages).
 - **List Files Tool:** Lists entries in a directory using a clean 5-line `safePath` workspace check.
 
-### [`src/model.ts`](../src/model.ts): model adapter and factory
+### [`src/model.ts`](../src/model.ts): OpenAI model client and factory
 
-- **Purpose:** Implements `ModelClient` via AI SDK's `generateText()` for one turn at a time,
-  and provides `createModelFromEnvironment()` to initialize Google Gemini (default) or Local LLM / LM Studio.
+- **Purpose:** Implements `ModelClient` using the official `openai` SDK, and provides
+  `createModelFromEnvironment()` to initialize Google Gemini (default) or Local LLM / LM Studio.
 
 ## Call walkthrough
 
 ```text
 index.ts
   -> runAgent (agent.ts)
-       -> AiSdkModel.respond (model.ts — model decides)
+       -> OpenAiModel.respond (model.ts — model decides)
        -> ToolRegistry.execute (tools.ts — application dispatches)
             -> list_files.execute (tools.ts — filesystem work)
-       -> AiSdkModel.respond (model.ts — uses tool result)
+       -> OpenAiModel.respond (model.ts — uses tool result)
   -> printMessage / console (index.ts)
 ```
 
 ## Adding another tool
 
 Define a new tool function matching the `ToolDefinition` interface in [`src/tools.ts`](../src/tools.ts):
-provide a `name`, `description`, `inputSchema`, and an `execute(args)` function. Then register it in
+provide a `name`, `description`, `parameters`, and an `execute(args)` function. Then register it in
 [`src/index.ts`](../src/index.ts):
 
 ```ts
 tools.register(createNewTool(workspaceRoot));
 ```
 
-The agent loop and model adapter will automatically expose its schema to the model and dispatch calls to it.
+The agent loop and model client will automatically expose its parameters to the model and dispatch calls to it.

@@ -7,11 +7,10 @@ export interface ToolCall {
 export interface ToolDefinition {
   name: string;
   description: string;
-  inputSchema: {
+  parameters: {
     type: "object";
     properties: Record<string, unknown>;
     required?: string[];
-    additionalProperties?: boolean;
   };
   execute: (args: Record<string, unknown>) => Promise<unknown>;
 }
@@ -19,7 +18,7 @@ export interface ToolDefinition {
 export interface ToolSummary {
   name: string;
   description: string;
-  inputSchema: ToolDefinition["inputSchema"];
+  parameters: ToolDefinition["parameters"];
 }
 
 export interface AssistantMessage {
