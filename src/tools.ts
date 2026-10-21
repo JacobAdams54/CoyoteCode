@@ -1,5 +1,5 @@
-import { readdir } from "node:fs/promises";
-import { resolve } from "node:path";
+import { readdir, writeFile } from "node:fs/promises";
+import { relative, resolve, sep } from "node:path";
 import type { Message, ToolCall, ToolDefinition, ToolSummary } from "./types.js";
 
 export class ToolRegistry {
@@ -55,8 +55,9 @@ export class ToolRegistry {
  * Ensures a path stays inside the workspace directory.
  */
 function safePath(workspaceRoot: string, userPath: string = "."): string {
-  const resolved = resolve(workspaceRoot, userPath);
-  if (!resolved.startsWith(resolve(workspaceRoot))) {
+  const root = resolve(workspaceRoot);
+  const resolved = resolve(root, userPath);
+  if (resolved !== root && !resolved.startsWith(`${root}${sep}`)) {
     throw new Error(`Access denied: "${userPath}" is outside the workspace.`);
   }
   return resolved;
@@ -84,6 +85,50 @@ export function createListFilesTool(workspaceRoot: string): ToolDefinition {
         name: entry.name,
         type: entry.isDirectory() ? "directory" : "file",
       }));
+    },
+  };
+}
+
+export function createFilesTool(workspaceRoot: string): ToolDefinition {
+  return {
+    name: "create_files",
+    description: "Creates a file inside a relative workspace directory.",
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: 'Relative path in the workspace (default: ".")',
+        },
+        filename: {
+          type: "string",
+          description: "Name of the file to create.",
+        },
+        content: {
+          type: "string",
+          description: "Contents to write to the file.",
+        },
+      },
+      required: ["filename", "content"],
+    },
+    async execute(args: Record<string, unknown>) {
+      const requestedPath = typeof args?.path === "string" ? args.path : ".";
+      const targetDir = safePath(workspaceRoot, requestedPath);
+      const filename = typeof args?.filename === "string" ? args.filename : "";
+      if (!filename) {
+        throw new Error("A filename is required.");
+      }
+      if (typeof args?.content !== "string") {
+        throw new Error("File content must be a string.");
+      }
+
+      const filePath = safePath(targetDir, filename);
+      await writeFile(filePath, args.content, "utf8");
+
+      return {
+        path: relative(resolve(workspaceRoot), filePath),
+        created: true,
+      };
     },
   };
 }
