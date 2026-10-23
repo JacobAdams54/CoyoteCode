@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 
 import { runAgent } from "./agent.js";
 import { createModelFromEnvironment } from "./model.js";
-import { createListFilesTool, ToolRegistry } from "./tools.js";
+import { createFilesTool, createListFilesTool, ToolRegistry } from "./tools.js";
 import type { Message } from "./types.js";
 
 const DEFAULT_TASK =
@@ -41,6 +41,7 @@ async function main(): Promise<void> {
 
   const tools = new ToolRegistry();
   tools.register(createListFilesTool(workspaceRoot));
+  tools.register(createFilesTool(workspaceRoot));
 
   const model = createModelFromEnvironment();
 

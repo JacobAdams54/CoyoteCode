@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { createListFilesTool, ToolRegistry } from "../src/tools.js";
+import { createFilesTool, createListFilesTool, ToolRegistry } from "../src/tools.js";
 
 describe("ToolRegistry", () => {
   it("registers and lists tool summaries", () => {
@@ -75,5 +77,42 @@ describe("list_files tool", () => {
   it("blocks path traversal outside the workspace", async () => {
     const tool = createListFilesTool(workspaceRoot);
     await expect(tool.execute({ path: "../.." })).rejects.toThrow("outside the workspace");
+  });
+});
+
+describe("create_files tool", () => {
+  it("creates a file in the requested workspace directory", async () => {
+    const workspaceRoot = await mkdtemp(resolve(tmpdir(), "coyote-code-"));
+
+    try {
+      const tool = createFilesTool(workspaceRoot);
+      const result = await tool.execute({
+        path: ".",
+        filename: "notes.txt",
+        content: "hello",
+      });
+
+      expect(result).toEqual({ path: "notes.txt", created: true });
+      await expect(readFile(resolve(workspaceRoot, "notes.txt"), "utf8")).resolves.toBe("hello");
+    } finally {
+      await rm(workspaceRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("blocks creating a file outside the workspace", async () => {
+    const workspaceRoot = await mkdtemp(resolve(tmpdir(), "coyote-code-"));
+
+    try {
+      const tool = createFilesTool(workspaceRoot);
+      await expect(
+        tool.execute({
+          path: ".",
+          filename: "../outside.txt",
+          content: "not allowed",
+        }),
+      ).rejects.toThrow("outside the workspace");
+    } finally {
+      await rm(workspaceRoot, { recursive: true, force: true });
+    }
   });
 });

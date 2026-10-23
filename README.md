@@ -87,7 +87,7 @@ The demo connects to Google's Gemini API (default) or any local OpenAI-compatibl
 ```text
 src/
 ├── types.ts    # Core data contracts: ToolDefinition, ToolCall, Message, ModelClient
-├── tools.ts    # ToolRegistry & list_files with safePath sandboxing
+├── tools.ts    # ToolRegistry, list_files, and create_files with safePath sandboxing
 ├── model.ts    # OpenAI SDK client configured for Google Gemini & Local LLMs
 ├── agent.ts    # The core Sense → Plan → Act while-loop
 └── index.ts    # Application entry point & CLI trace runner
