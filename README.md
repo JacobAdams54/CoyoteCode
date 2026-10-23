@@ -87,8 +87,18 @@ The demo connects to Google's Gemini API (default) or any local OpenAI-compatibl
 ```text
 src/
 ├── types.ts    # Core data contracts: ToolDefinition, ToolCall, Message, ModelClient
-├── tools.ts    # ToolRegistry, list_files, and create_files with safePath sandboxing
+├── tools.ts    # ToolRegistry, file tools, and safePath sandboxing
 ├── model.ts    # OpenAI SDK client configured for Google Gemini & Local LLMs
 ├── agent.ts    # The core Sense → Plan → Act while-loop
 └── index.ts    # Application entry point & CLI trace runner
 ```
+
+### Workspace tools
+
+The agent currently has three workspace-scoped tools:
+
+- `list_files` lists files and directories inside a relative workspace path.
+- `create_files` creates a file inside a relative workspace directory.
+- `read_files` reads the UTF-8 contents of a file inside the workspace.
+
+All file paths are checked with `safePath`, so paths that resolve outside the configured workspace are rejected.
