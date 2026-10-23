@@ -3,12 +3,15 @@ import { resolve } from "node:path";
 
 import { runAgent } from "./agent.js";
 import { createModelFromEnvironment } from "./model.js";
-import { createFilesTool, createListFilesTool, ToolRegistry } from "./tools.js";
+import {
+  createFilesTool,
+  createListFilesTool,
+  ToolRegistry,
+  createReadFileTool,
+} from "./tools.js";
 import type { Message } from "./types.js";
 
-const DEFAULT_TASK =
-  'Use list_files with path "." to inspect the sample project. ' +
-  "Then summarize the files and directories you found.";
+const DEFAULT_TASK = "Summarize the readme file";
 
 function printMessage(msg: Message): void {
   switch (msg.role) {
@@ -30,7 +33,9 @@ function printMessage(msg: Message): void {
       break;
 
     case "tool":
-      console.log(`\n[TOOL → ASSISTANT]\nTool: ${msg.toolName}\nResult: ${msg.content}`);
+      console.log(
+        `\n[TOOL → ASSISTANT]\nTool: ${msg.toolName}\nResult: ${msg.content}`,
+      );
       break;
   }
 }
@@ -42,12 +47,18 @@ async function main(): Promise<void> {
   const tools = new ToolRegistry();
   tools.register(createListFilesTool(workspaceRoot));
   tools.register(createFilesTool(workspaceRoot));
+  tools.register(createReadFileTool(workspaceRoot));
 
   const model = createModelFromEnvironment();
 
   console.log("Coyote Code");
   console.log(`Workspace: ${workspaceRoot}`);
-  console.log(`Tools: ${tools.list().map((t) => t.name).join(", ")}`);
+  console.log(
+    `Tools: ${tools
+      .list()
+      .map((t) => t.name)
+      .join(", ")}`,
+  );
 
   const result = await runAgent({ task, model, tools, maxTurns: 4 });
 

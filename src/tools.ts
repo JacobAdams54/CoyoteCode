@@ -1,6 +1,12 @@
 import { readdir, writeFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
-import type { Message, ToolCall, ToolDefinition, ToolSummary } from "./types.js";
+import { readFile, stat } from "node:fs/promises";
+import type {
+  Message,
+  ToolCall,
+  ToolDefinition,
+  ToolSummary,
+} from "./types.js";
 
 export class ToolRegistry {
   private readonly tools = new Map<string, ToolDefinition>();
@@ -13,11 +19,13 @@ export class ToolRegistry {
   }
 
   list(): ToolSummary[] {
-    return Array.from(this.tools.values()).map(({ name, description, parameters }) => ({
-      name,
-      description,
-      parameters,
-    }));
+    return Array.from(this.tools.values()).map(
+      ({ name, description, parameters }) => ({
+        name,
+        description,
+        parameters,
+      }),
+    );
   }
 
   async execute(call: ToolCall): Promise<Message> {
@@ -66,7 +74,8 @@ function safePath(workspaceRoot: string, userPath: string = "."): string {
 export function createListFilesTool(workspaceRoot: string): ToolDefinition {
   return {
     name: "list_files",
-    description: "Lists files and directories inside a relative workspace path.",
+    description:
+      "Lists files and directories inside a relative workspace path.",
     parameters: {
       type: "object",
       properties: {
@@ -128,6 +137,42 @@ export function createFilesTool(workspaceRoot: string): ToolDefinition {
       return {
         path: relative(resolve(workspaceRoot), filePath),
         created: true,
+      };
+    },
+  };
+}
+
+export function createReadFileTool(workspaceRoot: string): ToolDefinition {
+  return {
+    name: "read_files",
+    description: "Reads the contents of a file inside the workspace",
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Relative path to a file in the workspace",
+        },
+      },
+      required: ["path"],
+    },
+    async execute(args: Record<string, unknown>) {
+      if (typeof args.path !== "string" || args.path.length === 0) {
+        throw new Error("A file path is required.");
+      }
+
+      const filePath = safePath(workspaceRoot, args.path);
+      const fileStats = await stat(filePath);
+
+      if (!fileStats.isFile()) {
+        throw new Error(`"${args.path}" is not a file.`);
+      }
+
+      const content = await readFile(filePath, "utf8");
+
+      return {
+        path: relative(resolve(workspaceRoot), filePath),
+        content,
       };
     },
   };
