@@ -16,7 +16,7 @@ sequenceDiagram
 
     loop Sense → Plan → Act (until final response or maxTurns)
         Agent->>Model: respond(messages, toolSchemas)
-        Model-->>Agent: AssistantMessage (toolCalls: [list_files])
+        Model-->>Agent: AssistantMessage (toolCalls: [list_files, read_files, create_files])
         Agent->>Tools: execute(call)
         Tools->>Tools: safePath() validation
         Tools-->>Agent: Message (role: "tool", result)
@@ -50,6 +50,10 @@ sequenceDiagram
 - **`ToolRegistry`**: The application's security boundary. Models can only execute tools registered here. Converts exceptions into clean JSON error results.
 - **`safePath`**: 5-line containment helper ensuring all file access stays inside the workspace.
 - **`createListFilesTool`**: Lists entries in a directory inside the workspace.
+- **`createFilesTool`**: Creates a file inside a relative workspace directory.
+- **`createReadFileTool`**: Reads the UTF-8 contents of a file inside the workspace.
+
+The file tools accept workspace-relative paths. Paths that resolve outside the workspace are rejected by `safePath`, and `createReadFileTool` also rejects directories because it only reads regular files.
 
 ### [`src/model.ts`](../src/model.ts): Model Client & Factory
 - Implements `ModelClient` using the official `openai` SDK.
