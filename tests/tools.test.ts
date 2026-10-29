@@ -3,6 +3,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import {
+  createFileMetadataTool,
   createFilesTool,
   createListFilesTool,
   createReadFileTool,
@@ -165,5 +166,56 @@ describe("read_files tool", () => {
     await expect(tool.execute({ path: "src" })).rejects.toThrow(
       "is not a file",
     );
+  });
+});
+
+describe("get_file_metadata tool", () => {
+  it("returns file metadata without reading the file", async () => {
+    const workspaceRoot = await mkdtemp(resolve(tmpdir(), "coyote-code-"));
+
+    try {
+      const createTool = createFilesTool(workspaceRoot);
+      await createTool.execute({
+        path: ".",
+        filename: "notes.txt",
+        content: "hello",
+      });
+
+      const tool = createFileMetadataTool(workspaceRoot);
+      const result = await tool.execute({ path: "notes.txt" });
+
+      expect(result).toMatchObject({
+        path: "notes.txt",
+        type: "file",
+        size: 5,
+      });
+      expect(result).toHaveProperty("modifiedAt");
+      expect(typeof (result as { modifiedAt: unknown }).modifiedAt).toBe("string");
+    } finally {
+      await rm(workspaceRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("returns directory metadata", async () => {
+    const workspaceRoot = resolve(process.cwd(), "sample-project");
+    const tool = createFileMetadataTool(workspaceRoot);
+
+    await expect(tool.execute({ path: "src" })).resolves.toMatchObject({
+      path: "src",
+      type: "directory",
+    });
+  });
+
+  it("blocks metadata requests outside the workspace", async () => {
+    const workspaceRoot = await mkdtemp(resolve(tmpdir(), "coyote-code-"));
+
+    try {
+      const tool = createFileMetadataTool(workspaceRoot);
+      await expect(tool.execute({ path: "../outside.txt" })).rejects.toThrow(
+        "outside the workspace",
+      );
+    } finally {
+      await rm(workspaceRoot, { recursive: true, force: true });
+    }
   });
 });
