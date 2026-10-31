@@ -16,7 +16,7 @@ sequenceDiagram
 
     loop Sense → Plan → Act (until final response or maxTurns)
         Agent->>Model: respond(messages, toolSchemas)
-        Model-->>Agent: AssistantMessage (toolCalls: [list_files, read_files, create_files])
+        Model-->>Agent: AssistantMessage (toolCalls: [list_files, read_files, create_files, edit_file])
         Agent->>Tools: execute(call)
         Tools->>Tools: safePath() validation
         Tools-->>Agent: Message (role: "tool", result)
@@ -52,6 +52,7 @@ sequenceDiagram
 - **`createListFilesTool`**: Lists entries in a directory inside the workspace.
 - **`createFilesTool`**: Creates a file inside a relative workspace directory.
 - **`createReadFileTool`**: Reads the UTF-8 contents of a file inside the workspace.
+- **`createEditFileTool`**: Replaces `oldText` with `newText` in a workspace file, rejecting missing or ambiguous matches.
 
 The file tools accept workspace-relative paths. Paths that resolve outside the workspace are rejected by `safePath`, and `createReadFileTool` also rejects directories because it only reads regular files.
 

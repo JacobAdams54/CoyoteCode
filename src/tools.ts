@@ -210,3 +210,61 @@ export function createFileMetadataTool(workspaceRoot: string): ToolDefinition {
     },
   };
 }
+
+export function createEditFileTool(workspaceRoot: string): ToolDefinition {
+  return {
+    name: "edit_file",
+    description:
+      "Replaces one exact occurrence of oldText with newText in a workspace file.",
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Relative path to a file in the workspace",
+        },
+        oldText: {
+          type: "string",
+          description: "Exact text to replace. Must appear only once.",
+        },
+        newText: {
+          type: "string",
+          description: "Text to insert in place of oldText.",
+        },
+      },
+      required: ["path", "oldText", "newText"],
+    },
+    async execute(args: Record<string, unknown>) {
+      if (typeof args.path !== "string" || args.path.length === 0) {
+        throw new Error("A file path is required.");
+      }
+      if (typeof args.oldText !== "string" || args.oldText.length === 0) {
+        throw new Error("oldText must be a non empty string.");
+      }
+      if (typeof args.newText !== "string") {
+        throw new Error("newText must be a string.");
+      }
+
+      const filePath = safePath(workspaceRoot, args.path);
+      const content = await readFile(filePath, "utf8");
+
+      // Splitting on oldText gives one more piece than the number of matches 
+      const parts = content.split(args.oldText);
+      if (parts.length === 1) {
+        throw new Error(`oldText was not found in "${args.path}".`);
+      }
+      if (parts.length > 2) {
+        throw new Error(
+          `oldText appears ${parts.length - 1} times in "${args.path}". Include more surrounding text so it matches exactly once.`,
+        );
+      }
+
+      await writeFile(filePath, parts.join(args.newText), "utf8");
+
+      return {
+        path: relative(resolve(workspaceRoot), filePath),
+        edited: true,
+      };
+    },
+  };
+}

@@ -101,5 +101,6 @@ The agent currently has four workspace-scoped tools:
 - `create_files` creates a file inside a relative workspace directory.
 - `read_files` reads the UTF-8 contents of a file inside the workspace.
 - `get_file_metadata` returns a file or directory's type, size, and modification time without reading its contents.
+- `edit_file` replaces one exact occurrence of `oldText` with `newText` in a workspace file. Missing or ambiguous matches are rejected.
 
 All file paths are checked with `safePath`, so paths that resolve outside the configured workspace are rejected.
