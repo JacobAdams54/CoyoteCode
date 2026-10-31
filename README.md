@@ -95,10 +95,11 @@ src/
 
 ### Workspace tools
 
-The agent currently has three workspace-scoped tools:
+The agent currently has four workspace-scoped tools:
 
 - `list_files` lists files and directories inside a relative workspace path.
 - `create_files` creates a file inside a relative workspace directory.
 - `read_files` reads the UTF-8 contents of a file inside the workspace.
+- `get_file_metadata` returns a file or directory's type, size, and modification time without reading its contents.
 
 All file paths are checked with `safePath`, so paths that resolve outside the configured workspace are rejected.

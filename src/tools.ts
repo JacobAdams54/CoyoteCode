@@ -177,3 +177,36 @@ export function createReadFileTool(workspaceRoot: string): ToolDefinition {
     },
   };
 }
+
+export function createFileMetadataTool(workspaceRoot: string): ToolDefinition {
+  return {
+    name: "get_file_metadata",
+    description:
+      "Returns metadata for a file or directory inside the workspace without reading its contents.",
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Relative path to a file or directory in the workspace",
+        },
+      },
+      required: ["path"],
+    },
+    async execute(args: Record<string, unknown>) {
+      if (typeof args.path !== "string" || args.path.length === 0) {
+        throw new Error("A file path is required.");
+      }
+
+      const filePath = safePath(workspaceRoot, args.path);
+      const fileStats = await stat(filePath);
+
+      return {
+        path: relative(resolve(workspaceRoot), filePath),
+        type: fileStats.isDirectory() ? "directory" : "file",
+        size: fileStats.size,
+        modifiedAt: fileStats.mtime.toISOString(),
+      };
+    },
+  };
+}
