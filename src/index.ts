@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { runAgent } from "./agent.js";
 import { createModelFromEnvironment } from "./model.js";
 import {
+  createEditFileTool,
   createFilesTool,
   createListFilesTool,
   ToolRegistry,
@@ -48,6 +49,7 @@ async function main(): Promise<void> {
   tools.register(createListFilesTool(workspaceRoot));
   tools.register(createFilesTool(workspaceRoot));
   tools.register(createReadFileTool(workspaceRoot));
+  tools.register(createEditFileTool(workspaceRoot));
 
   const model = createModelFromEnvironment();
 
