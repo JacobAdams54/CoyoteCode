@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import {
   createFileMetadataTool,
+  createEditFileTool,
   createFilesTool,
   createListFilesTool,
   createReadFileTool,
@@ -214,6 +216,77 @@ describe("get_file_metadata tool", () => {
       await expect(tool.execute({ path: "../outside.txt" })).rejects.toThrow(
         "outside the workspace",
       );
+    } finally {
+      await rm(workspaceRoot, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("edit_file tool", () => {
+  it("replaces text that appears exactly once", async () => {
+    const workspaceRoot = await mkdtemp(resolve(tmpdir(), "coyote-code-"));
+
+    try {
+      const filePath = resolve(workspaceRoot, "index.ts");
+      await writeFile(filePath, "const value = 1;\nconsole.log(value);\n", "utf8");
+
+      const tool = createEditFileTool(workspaceRoot);
+      const result = await tool.execute({
+        path: "index.ts",
+        oldText: "const value = 1;",
+        newText: "const value = 2;",
+      });
+
+      expect(result).toEqual({ path: "index.ts", edited: true });
+      await expect(readFile(filePath, "utf8")).resolves.toBe(
+        "const value = 2;\nconsole.log(value);\n",
+      );
+    } finally {
+      await rm(workspaceRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects oldText that is not found", async () => {
+    const workspaceRoot = await mkdtemp(resolve(tmpdir(), "coyote-code-"));
+
+    try {
+      await writeFile(resolve(workspaceRoot, "notes.txt"), "hello", "utf8");
+      const tool = createEditFileTool(workspaceRoot);
+
+      await expect(
+        tool.execute({ path: "notes.txt", oldText: "goodbye", newText: "hi" }),
+      ).rejects.toThrow("not found");
+    } finally {
+      await rm(workspaceRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects ambiguous oldText and leaves the file unchanged", async () => {
+    const workspaceRoot = await mkdtemp(resolve(tmpdir(), "coyote-code-"));
+
+    try {
+      const filePath = resolve(workspaceRoot, "notes.txt");
+      await writeFile(filePath, "a a", "utf8");
+      const tool = createEditFileTool(workspaceRoot);
+
+      await expect(
+        tool.execute({ path: "notes.txt", oldText: "a", newText: "b" }),
+      ).rejects.toThrow("appears 2 times");
+      await expect(readFile(filePath, "utf8")).resolves.toBe("a a");
+    } finally {
+      await rm(workspaceRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("blocks editing outside the workspace", async () => {
+    const workspaceRoot = await mkdtemp(resolve(tmpdir(), "coyote-code-"));
+
+    try {
+      const tool = createEditFileTool(workspaceRoot);
+
+      await expect(
+        tool.execute({ path: "../outside.txt", oldText: "a", newText: "b" }),
+      ).rejects.toThrow("outside the workspace");
     } finally {
       await rm(workspaceRoot, { recursive: true, force: true });
     }
