@@ -10,6 +10,7 @@ import {
   createListFilesTool,
   ToolRegistry,
   createReadFileTool,
+  searchPhraseTool
 } from "./tools.js";
 import type { Message } from "./types.js";
 
@@ -52,6 +53,7 @@ async function main(): Promise<void> {
   tools.register(createReadFileTool(workspaceRoot));
   tools.register(createFileMetadataTool(workspaceRoot));
   tools.register(createEditFileTool(workspaceRoot));
+  tools.register(searchPhraseTool(workspaceRoot));  // TODO: Setup
 
   const model = createModelFromEnvironment();
 
