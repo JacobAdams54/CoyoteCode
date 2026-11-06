@@ -39,8 +39,8 @@ sequenceDiagram
 - Reads CLI arguments, initializes the `ToolRegistry` with `sample-project` as the workspace, builds the model client, and starts `runAgent()`.
 - Prints the formatted trace (`[USER]`, `[ASSISTANT → TOOL]`, `[TOOL → ASSISTANT]`, `[ASSISTANT]`).
 
-### [`src/agent.ts`](../src/agent.ts): Orchestration Loop
-- Implements the core `while` loop:
+### [`src/agent.ts`](../src/agent.ts): Agentic Loop
+- Implements the agentic loop that creates the agents environment:
   1. Ask `model.respond(messages, tools.list())`.
   2. If no tool calls, return `finalResponse`.
   3. If tool calls exist, execute each via `tools.execute(call)` and append to `messages`.

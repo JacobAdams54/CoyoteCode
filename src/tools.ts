@@ -1,12 +1,16 @@
 import { readdir, writeFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 import { readFile, stat } from "node:fs/promises";
+import { execFile } from "node:child_process"
+import { promisify }from "node:util"
+
 import type {
   Message,
   ToolCall,
   ToolDefinition,
   ToolSummary,
 } from "./types.js";
+import { describe } from "node:test";
 
 export class ToolRegistry {
   private readonly tools = new Map<string, ToolDefinition>();
@@ -71,6 +75,9 @@ function safePath(workspaceRoot: string, userPath: string = "."): string {
   return resolved;
 }
 
+/**
+ * Start of Available tools
+ */
 export function createListFilesTool(workspaceRoot: string): ToolDefinition {
   return {
     name: "list_files",
@@ -248,7 +255,7 @@ export function createEditFileTool(workspaceRoot: string): ToolDefinition {
       const filePath = safePath(workspaceRoot, args.path);
       const content = await readFile(filePath, "utf8");
 
-      // Splitting on oldText gives one more piece than the number of matches 
+      // Splitting on oldText gives one more piece than the number of matches
       const parts = content.split(args.oldText);
       if (parts.length === 1) {
         throw new Error(`oldText was not found in "${args.path}".`);
@@ -265,6 +272,83 @@ export function createEditFileTool(workspaceRoot: string): ToolDefinition {
         path: relative(resolve(workspaceRoot), filePath),
         edited: true,
       };
+    },
+  };
+}
+
+
+/*
+Addressing Issue #24
+Purpose: Should use the ripgrep tool to be able to search for a file or phrase within
+the workspace or specified path
+*/
+const execFileAsync = promisify(execFile);
+
+export function searchPhraseTool(workspaceRoot: string): ToolDefinition {
+  return {
+    name: "search_phrase",
+    description: "Use ripgrep using the command line to look for a given phrase",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description: "Text or regular expression to search for",
+        },
+        path: {
+          type: "string",
+          description: "Relative workspace path to search",
+        },
+      },
+      required: ["query"],
+    },
+
+    async execute(args) {
+      const query = typeof args.query === "string" ? args.query : "";
+      const requestedPath =
+        typeof args.path === "string" ? args.path : ".";
+
+      if (!query.trim()) {
+        throw new Error("A search query is required.");
+      }
+
+      const searchPath = safePath(workspaceRoot, requestedPath);
+
+      try {
+        const result = await execFileAsync(
+          "rg",
+          [
+            "--line-number",
+            "--hidden",
+            "--glob",
+            "!.git",
+            "--glob",
+            "!node_modules",
+            "--",
+            query,
+            searchPath,
+          ],
+          {
+            cwd: workspaceRoot,
+            timeout: 10_000,
+            maxBuffer: 1_000_000,
+          },
+        );
+
+        return {
+          matches: result.stdout,
+          truncated: false,
+        };
+      } catch (error: unknown) {
+        const commandError = error as { code?: number; stdout?: string };
+
+        // ripgrep uses exit code 1 when there are no matches.
+        if (commandError.code === 1) {
+          return { matches: "", truncated: false };
+        }
+
+        throw error;
+      }
     },
   };
 }
