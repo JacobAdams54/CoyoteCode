@@ -1,37 +1,22 @@
 {
-  "name": "coyotecode_wed",
+  "name": "coyotecode",
   "version": "1.0.0",
-  "description": "CoyoteCode is a beginner-friendly workshop project for building a terminal coding agent with TypeScript. Students learn tool calling, repository inspection, the agent loop, sandboxing, and autonomous problem solving.",
+  "private": true,
+  "description": "CoyoteCode frontend, backend, and agent harness monorepo.",
+  "workspaces": [
+    "agent",
+    "server",
+    "client"
+  ],
   "scripts": {
-    "test": "vitest run",
-    "dev": "tsx src/index.ts",
-    "check": "tsc --noEmit",
-    "test:watch": "vitest"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/JacobAdams54/CoyoteCode_wed.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "module",
-  "bugs": {
-    "url": "https://github.com/JacobAdams54/CoyoteCode_wed/issues"
-  },
-  "homepage": "https://github.com/JacobAdams54/CoyoteCode_wed#readme",
-  "devDependencies": {
-    "@types/node": "^24.19.0",
-    "tsx": "^4.23.15",
-    "typescript": "^7.0.2",
-    "vitest": "^5.0.2"
+    "check": "npm run check --workspaces --if-present",
+    "test": "npm run test --workspace agent",
+    "dev:agent": "npm run dev --workspace agent",
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:client": "npm run dev --workspace client",
+    "build": "npm run build --workspace client"
   },
   "engines": {
     "node": ">=20"
-  },
-  "dependencies": {
-    "dotenv": "^18.0.4",
-    "express": "^5.3.0",
-    "openai": "^7.35.0"
   }
 }
