@@ -1,5 +1,12 @@
-import "dotenv/config";
-import { resolve } from "node:path";
+import { config } from "dotenv";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const sourceDirectory = dirname(fileURLToPath(import.meta.url));
+const packageDirectory = resolve(sourceDirectory, "..");
+config({ path: resolve(process.cwd(), ".env") });
+config({ path: resolve(packageDirectory, ".env") });
+config({ path: resolve(packageDirectory, "../.env") });
 
 import { runAgent } from "./agent.js";
 import { createModelFromEnvironment } from "./model.js";
@@ -7,6 +14,7 @@ import {
   createEditFileTool,
   createFilesTool,
   createFileMetadataTool,
+  createFolderTool,
   createListFilesTool,
   ToolRegistry,
   createReadFileTool,
@@ -50,6 +58,7 @@ async function main(): Promise<void> {
   const tools = new ToolRegistry();
   tools.register(createListFilesTool(workspaceRoot));
   tools.register(createFilesTool(workspaceRoot));
+  tools.register(createFolderTool(workspaceRoot));
   tools.register(createReadFileTool(workspaceRoot));
   tools.register(createFileMetadataTool(workspaceRoot));
   tools.register(createEditFileTool(workspaceRoot));

@@ -51,6 +51,7 @@ sequenceDiagram
 - **`safePath`**: 5-line containment helper ensuring all file access stays inside the workspace.
 - **`createListFilesTool`**: Lists entries in a directory inside the workspace.
 - **`createFilesTool`**: Creates a file inside a relative workspace directory.
+- **`createFolderTool`**: Creates a directory inside the workspace, including missing parent directories.
 - **`createReadFileTool`**: Reads the UTF-8 contents of a file inside the workspace.
 - **`createEditFileTool`**: Replaces `oldText` with `newText` in a workspace file, rejecting missing or ambiguous matches.
 

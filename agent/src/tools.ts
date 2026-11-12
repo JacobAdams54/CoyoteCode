@@ -1,4 +1,4 @@
-import { readdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 import { readFile, stat } from "node:fs/promises";
 import { execFile } from "node:child_process"
@@ -143,6 +143,36 @@ export function createFilesTool(workspaceRoot: string): ToolDefinition {
 
       return {
         path: relative(resolve(workspaceRoot), filePath),
+        created: true,
+      };
+    },
+  };
+}
+
+export function createFolderTool(workspaceRoot: string): ToolDefinition {
+  return {
+    name: "create_folder",
+    description: "Creates a directory inside the workspace, including missing parent directories.",
+    parameters: {
+      type: "object",
+      properties: {
+        path: {
+          type: "string",
+          description: "Relative path to the directory to create in the workspace.",
+        },
+      },
+      required: ["path"],
+    },
+    async execute(args: Record<string, unknown>) {
+      if (typeof args.path !== "string" || args.path.length === 0) {
+        throw new Error("A folder path is required.");
+      }
+
+      const folderPath = safePath(workspaceRoot, args.path);
+      await mkdir(folderPath, { recursive: true });
+
+      return {
+        path: relative(resolve(workspaceRoot), folderPath),
         created: true,
       };
     },
