@@ -42,7 +42,7 @@ export async function runAgentTask(task: string): Promise<string> {
     task,
     model,
     tools,
-    maxTurns: 12,
+    maxTurns: 15,
   });
 
   return result.finalResponse;
