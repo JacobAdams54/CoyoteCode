@@ -1,3 +1,5 @@
+import coyoteCodeLogo from "../assets/CoyoteCodeLogo.png";
+
 type SidebarProps = {
   onNewChat: () => void;
   disabled: boolean;
@@ -7,10 +9,7 @@ export default function Sidebar({ onNewChat, disabled }: SidebarProps) {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <span className="logo-mark" aria-hidden="true">
-          C
-        </span>
-        <span className="app-name">CoyoteCode</span>
+        <img className="sidebar-logo" src={coyoteCodeLogo} alt="CoyoteCode" />
       </div>
 
       <button
