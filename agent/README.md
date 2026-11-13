@@ -99,6 +99,7 @@ The agent currently has five workspace-scoped tools:
 
 - `list_files` lists files and directories inside a relative workspace path.
 - `create_files` creates a file inside a relative workspace directory.
+- 'create_directory' Creates a directory inside the workspace, including missing parent directories.
 - `read_files` reads the UTF-8 contents of a file inside the workspace.
 - `edit_file` replaces one exact occurrence of `oldText` with `newText` in a workspace file. Missing or ambiguous matches are rejected.
 - `get_file_metadata` returns a file or directory's type, size, and modification time without reading its contents.

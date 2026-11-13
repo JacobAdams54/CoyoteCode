@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import {
   createFileMetadataTool,
   createEditFileTool,
   createFilesTool,
+  createDirectoryTool,
   createListFilesTool,
   createReadFileTool,
   ToolRegistry,
@@ -118,6 +119,38 @@ describe("create_files tool", () => {
           content: "not allowed",
         }),
       ).rejects.toThrow("outside the workspace");
+    } finally {
+      await rm(workspaceRoot, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("create_directory tool", () => {
+  it("creates nested directories in the workspace", async () => {
+    const workspaceRoot = await mkdtemp(resolve(tmpdir(), "coyote-code-"));
+
+    try {
+      const tool = createDirectoryTool(workspaceRoot);
+
+      await expect(tool.execute({ path: "src/utils" })).resolves.toEqual({
+        path: "src/utils",
+        created: true,
+      });
+      const directory = await stat(resolve(workspaceRoot, "src/utils"));
+      expect(directory.isDirectory()).toBe(true);
+    } finally {
+      await rm(workspaceRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("blocks creating a directory outside the workspace", async () => {
+    const workspaceRoot = await mkdtemp(resolve(tmpdir(), "coyote-code-"));
+
+    try {
+      const tool = createDirectoryTool(workspaceRoot);
+      await expect(tool.execute({ path: "../outside" })).rejects.toThrow(
+        "outside the workspace",
+      );
     } finally {
       await rm(workspaceRoot, { recursive: true, force: true });
     }
