@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { add, divide, multiply, subtract } from "../src/calculator";
+import { add, divide, modulus, multiply, subtract } from "../src/calculator";
 
 describe("calculator", () => {
   it("adds two numbers", () => {
@@ -17,5 +17,10 @@ describe("calculator", () => {
 
   it("divides two numbers", () => {
     expect(divide(10, 2)).toBe(5);
+  });
+
+  it("calculates the modulus of two numbers", () => {
+    expect(modulus(5, 2)).toBe(1);
+    expect(() => modulus(5, 0)).toThrow("Division by zero");
   });
 });
