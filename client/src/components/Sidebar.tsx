@@ -5,7 +5,7 @@ type SidebarProps = {
   disabled: boolean;
 };
 
-export default function Sidebar({ onNewChat, disabled }: SidebarProps) {
+export default function Sidebar({ onNewChat, disabled}: SidebarProps) {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
