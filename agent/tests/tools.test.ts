@@ -6,7 +6,7 @@ import {
   createFileMetadataTool,
   createEditFileTool,
   createFilesTool,
-  createFolderTool,
+  createDirectoryTool,
   createListFilesTool,
   createReadFileTool,
   ToolRegistry,
@@ -125,12 +125,12 @@ describe("create_files tool", () => {
   });
 });
 
-describe("create_folder tool", () => {
+describe("create_directory tool", () => {
   it("creates nested directories in the workspace", async () => {
     const workspaceRoot = await mkdtemp(resolve(tmpdir(), "coyote-code-"));
 
     try {
-      const tool = createFolderTool(workspaceRoot);
+      const tool = createDirectoryTool(workspaceRoot);
 
       await expect(tool.execute({ path: "src/utils" })).resolves.toEqual({
         path: "src/utils",
@@ -143,11 +143,11 @@ describe("create_folder tool", () => {
     }
   });
 
-  it("blocks creating a folder outside the workspace", async () => {
+  it("blocks creating a directory outside the workspace", async () => {
     const workspaceRoot = await mkdtemp(resolve(tmpdir(), "coyote-code-"));
 
     try {
-      const tool = createFolderTool(workspaceRoot);
+      const tool = createDirectoryTool(workspaceRoot);
       await expect(tool.execute({ path: "../outside" })).rejects.toThrow(
         "outside the workspace",
       );

@@ -149,9 +149,9 @@ export function createFilesTool(workspaceRoot: string): ToolDefinition {
   };
 }
 
-export function createFolderTool(workspaceRoot: string): ToolDefinition {
+export function createDirectoryTool(workspaceRoot: string): ToolDefinition {
   return {
-    name: "create_folder",
+    name: "create_directory",
     description: "Creates a directory inside the workspace, including missing parent directories.",
     parameters: {
       type: "object",

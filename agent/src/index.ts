@@ -14,15 +14,16 @@ import {
   createEditFileTool,
   createFilesTool,
   createFileMetadataTool,
-  createFolderTool,
+  createDirectoryTool,
   createListFilesTool,
   ToolRegistry,
   createReadFileTool,
-  searchPhraseTool
+  searchPhraseTool,
 } from "./tools.js";
 import type { Message } from "./types.js";
 
-const DEFAULT_TASK = "Summarize the readme file";
+const DEFAULT_TASK =
+  "Create a new documentation folder, and add a simple project tree diagram to it.";
 
 function printMessage(msg: Message): void {
   switch (msg.role) {
@@ -58,11 +59,11 @@ async function main(): Promise<void> {
   const tools = new ToolRegistry();
   tools.register(createListFilesTool(workspaceRoot));
   tools.register(createFilesTool(workspaceRoot));
-  tools.register(createFolderTool(workspaceRoot));
+  tools.register(createDirectoryTool(workspaceRoot));
   tools.register(createReadFileTool(workspaceRoot));
   tools.register(createFileMetadataTool(workspaceRoot));
   tools.register(createEditFileTool(workspaceRoot));
-  tools.register(searchPhraseTool(workspaceRoot));  // TODO: Setup
+  tools.register(searchPhraseTool(workspaceRoot));
 
   const model = createModelFromEnvironment();
 
@@ -75,7 +76,7 @@ async function main(): Promise<void> {
       .join(", ")}`,
   );
 
-  const result = await runAgent({ task, model, tools, maxTurns: 4 });
+  const result = await runAgent({ task, model, tools, maxTurns: 12 });
 
   for (const msg of result.messages) {
     printMessage(msg);
